@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="S5 Chemistry simulator: measure the voltages of simple chemical cells and discover the Electrochemical Series.">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Cell Voltage Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: lab-bench workspace — apparatus left, instrument controls right, missions + data log below */
+:root{
+  --bg:#e9edf1; --surface:#ffffff; --surface-2:#f4f6f8; --ink:#1a2330; --muted:#5a6676; --line:#d2d9e1;
+  --accent:#0d7480; --accent-soft:#d8eef0;
+  --red:#cf3a2b; --probe-black:#1d2228;
+  --meter:#e9a53b; --meter-edge:#c4842a; --lcd:#c5d2b0; --lcd-ink:#1b2715;
+  --liquid:rgba(120,170,215,.28); --glass:#9fb0c0;
+  --good:#2b8048; --good-soft:#dff1e5; --bad:#b8392c; --bad-soft:#f8e1de;
+  --electron:#d4a400;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --f-body:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;
+  --f-lcd:"Share Tech Mono",ui-monospace,monospace;
+  --f-zh:"Noto Sans TC","IBM Plex Sans",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a21; --surface:#1d252e; --surface-2:#232c36; --ink:#e4e9ef; --muted:#9aa6b4; --line:#33404d;
+  --accent:#4fbcc6; --accent-soft:#18363b; --red:#ea5a49; --probe-black:#7c8794;
+  --meter:#d99a35; --meter-edge:#a8721f; --lcd:#b7c59f; --lcd-ink:#17210f;
+  --liquid:rgba(110,160,210,.22); --glass:#5d6c7b;
+  --good:#5cc27f; --good-soft:#173524; --bad:#ec7a6c; --bad-soft:#3a1d1a; --electron:#f2c84b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a21; --surface:#1d252e; --surface-2:#232c36; --ink:#e4e9ef; --muted:#9aa6b4; --line:#33404d;
+  --accent:#4fbcc6; --accent-soft:#18363b; --red:#ea5a49; --probe-black:#7c8794;
+  --meter:#d99a35; --meter-edge:#a8721f; --lcd:#b7c59f; --lcd-ink:#17210f;
+  --liquid:rgba(110,160,210,.22); --glass:#5d6c7b;
+  --good:#5cc27f; --good-soft:#173524; --bad:#ec7a6c; --bad-soft:#3a1d1a; --electron:#f2c84b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin-bottom:18px}
+h1{font-family:var(--f-display);font-weight:700;font-size:2.4rem;line-height:1;margin:0;letter-spacing:.01em}
+h1 small{display:block;font-family:var(--f-body);font-size:.85rem;font-weight:500;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.tag{font-size:.85rem;color:var(--muted)}
+.zh{font-family:var(--f-zh)}
+h2{font-family:var(--f-display);font-weight:700;font-size:1.35rem;letter-spacing:.02em;margin:0 0 10px;text-wrap:balance}
+h3{font-size:1rem;margin:0 0 6px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.bench svg{width:100%;height:auto;display:block}
+.status{margin-top:8px;font-size:.92rem;color:var(--muted);text-align:center}
+.status b{color:var(--ink)}
+.label{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chip{font:inherit;font-weight:600;min-width:46px;padding:7px 10px;border-radius:7px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px}
+.chip .sw{width:10px;height:22px;border-radius:2px;border:1px solid rgba(0,0,0,.25)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chip:focus-visible,.btn:focus-visible,.tab:focus-visible,.opt:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.key{display:flex;flex-wrap:wrap;gap:4px 16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:14px;font-size:.92rem}
+.key>b:first-child{flex-basis:100%;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.leads{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--surface-2);margin-bottom:14px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-weight:600;padding:8px 14px;border-radius:7px;border:1.5px solid var(--accent);background:var(--accent);color:var(--surface);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.ghost[aria-pressed="true"]{background:var(--accent-soft)}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.note{font-size:.82rem;color:var(--muted);margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:.92rem}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.v{font-family:var(--f-lcd);font-size:1.05rem}
+.tablebox{overflow-x:auto;max-height:320px;overflow-y:auto}
+.empty{color:var(--muted);font-size:.9rem;padding:12px 0}
+.x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem}
+.lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;margin-top:18px}
+@media (max-width:860px){.lower{grid-template-columns:1fr}}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tab{font:inherit;font-weight:600;font-size:.9rem;padding:7px 12px;border-radius:7px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tab .ok{color:var(--good);margin-left:4px}
+.tab[aria-selected="true"] .ok{color:var(--surface)}
+.mission p{margin:0 0 10px;max-width:68ch}
+.hook{border-left:3px solid var(--red);padding:8px 12px;background:var(--surface-2);border-radius:0 8px 8px 0;margin:0 0 12px;font-family:var(--f-zh)}
+ol.steps{margin:0 0 12px;padding-left:1.3em}
+ol.steps li{margin-bottom:5px}
+.tps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+@media (max-width:620px){.tps{grid-template-columns:1fr}}
+.tps div{background:var(--surface-2);border-radius:8px;padding:9px 11px;font-size:.88rem}
+.tps b{display:block;font-family:var(--f-display);font-size:1rem;letter-spacing:.04em;color:var(--accent)}
+.check{border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:12px}
+.check .q{font-weight:600;margin-bottom:8px}
+.opts{display:grid;gap:6px}
+.opt{font:inherit;text-align:left;padding:8px 11px;border-radius:7px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.opt.right{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{margin-top:8px;font-size:.9rem;padding:8px 10px;border-radius:7px}
+.fb.right{background:var(--good-soft);color:var(--ink)}
+.fb.wrong{background:var(--bad-soft);color:var(--ink)}
+.predict{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.predict input{font:inherit;font-family:var(--f-lcd);width:110px;padding:7px 9px;border-radius:7px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.ladder{list-style:none;margin:0;padding:0;position:relative}
+.ladder li{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:6px;font-size:.92rem}
+.ladder li .sym{font-weight:600;width:2.2em}
+.ladder li.off{color:var(--muted);opacity:.65}
+.ladder li.hl-red{background:color-mix(in srgb,var(--red) 16%,transparent)}
+.ladder li.hl-black{background:color-mix(in srgb,var(--probe-black) 20%,transparent)}
+.ladder li .pill{margin-left:auto;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:99px;color:var(--surface)}
+.ends{font-size:.78rem;color:var(--muted);margin:4px 8px}
+.gapnote{margin-top:10px;font-size:.9rem;padding:8px 10px;background:var(--surface-2);border-radius:7px}
+details{margin-top:18px}
+summary{cursor:pointer;font-weight:600}
+details .panel{margin-top:10px}
+@keyframes flow{to{stroke-dashoffset:-18}}
+@keyframes flowr{to{stroke-dashoffset:18}}
+.e-fwd{animation:flow .7s linear infinite}
+.e-rev{animation:flowr .7s linear infinite}
+@media (prefers-reduced-motion:reduce){.e-fwd,.e-rev{animation:none}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1><small>S5 Chemistry · 29.2 Measuring voltages of chemical cells</small>Cell Voltage Lab</h1>
+    <div class="tag">Simple chemical cell · NaCl(aq) electrolyte · digital multimeter (as a voltmeter) <span class="zh">簡單化學電池</span></div>
+  </header>
+
+  <div class="grid">
+    <section class="panel bench" aria-label="Apparatus">
+      <svg id="rig" viewBox="0 0 520 400" role="img" aria-label="Two metal strips in a beaker of sodium chloride solution connected to a digital multimeter"></svg>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section class="panel" aria-label="Controls">
+      <div class="key" role="note"><b>Meter key</b><span><span class="dot" style="background:var(--red)"></span><b>Red probe = positive (+) terminal</b></span><span><span class="dot" style="background:var(--probe-black)"></span><b>Black probe = negative (−) terminal</b> (labelled COM on the meter)</span></div>
+      <p class="label">Left strip</p>
+      <div class="chips" id="chipsA"></div>
+      <p class="label">Right strip</p>
+      <div class="chips" id="chipsB"></div>
+      <div class="leads" id="leads"></div>
+      <div class="btns">
+        <button class="btn" id="record">Record reading</button>
+        <button class="btn ghost" id="flowBtn" aria-pressed="false">Show electron flow</button>
+        <button class="btn ghost" id="ladderBtn" aria-pressed="false">Show E.C.S.</button>
+      </div>
+      <p class="note">Tip: change one thing at a time. Keep one probe on the same metal and change only the other strip.</p>
+    </section>
+  </div>
+
+  <div class="lower">
+    <section class="panel mission" aria-label="Missions">
+      <h2>Missions</h2>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div id="mission"></div>
+    </section>
+
+    <div style="display:grid;gap:18px;align-content:start;min-width:0">
+      <section class="panel" aria-label="Results">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 style="margin:0">My results</h2>
+          <div class="btns">
+            <button class="btn ghost small" id="sortBtn">Sort by voltage</button>
+            <button class="btn ghost small" id="copyBtn">Copy table</button>
+            <button class="btn ghost small" id="clearBtn">Clear</button>
+          </div>
+        </div>
+        <div class="tablebox" style="margin-top:8px"><table>
+          <thead><tr><th>#</th><th><span class="dot" style="background:var(--red)"></span>Red (+) probe</th><th><span class="dot" style="background:var(--probe-black)"></span>Black (−) probe</th><th>Reading / V</th><th></th></tr></thead>
+          <tbody id="log"></tbody>
+        </table></div>
+        <p class="note" id="copyMsg"></p>
+      </section>
+
+      <section class="panel" id="ladderPanel" hidden aria-label="Electrochemical Series">
+        <h2>Electrochemical Series <span class="zh" style="font-size:.9rem;color:var(--muted)">電化序</span></h2>
+        <p class="ends">▲ loses electrons most readily</p>
+        <ul class="ladder" id="ladder"></ul>
+        <p class="ends">▼ loses electrons least readily</p>
+        <div class="gapnote" id="gapnote"></div>
+      </section>
+    </div>
+  </div>
+
+  <details>
+    <summary>Teacher notes</summary>
+    <div class="panel">
+      <p style="margin-top:0">Readings follow Table 29.1 of the textbook (Cu as reference on the red probe): Mg/Cu +1.84 V, Zn/Cu +0.92 V, Fe/Cu +0.49 V, Cu/Cu 0.00 V, Ag/Cu −0.17 V. Pb (+0.32 V) and Metal X (+1.30 V vs Cu) are simulated values for extension. Every reading equals the difference between the two metals' values, so Mission 3 predictions add up exactly (e.g. Zn/Ag = 0.92 + 0.17 = 1.09 V).</p>
+      <p>Electron flow and the E.C.S. are hidden at the start so students build the rule from their own data first. Suggested order: Mission 1 → reveal the E.C.S. → Mission 2 → reveal electron flow → Missions 3–4.</p>
+      <p style="margin-bottom:0">Terms: in a chemical cell the positive electrode is the cathode (reduction, gains electrons) and the negative electrode is the anode (oxidation, loses electrons). A digital multimeter shows a positive reading when the red (VΩ) terminal is connected to the positive electrode.</p>
+    </div>
+  </details>
+</div>
+
+<script>
+const METALS={
+  Mg:{name:"Magnesium",zh:"鎂",p:1.84,c:"#c8cbd0"},
+  X:{name:"Metal X",zh:"金屬 X",p:1.30,c:"#9a8db0"},
+  Zn:{name:"Zinc",zh:"鋅",p:0.92,c:"#a6b2be"},
+  Fe:{name:"Iron",zh:"鐵",p:0.49,c:"#6c7177"},
+  Pb:{name:"Lead",zh:"鉛",p:0.32,c:"#7b8592"},
+  Cu:{name:"Copper",zh:"銅",p:0.00,c:"#c27a43"},
+  Ag:{name:"Silver",zh:"銀",p:-0.17,c:"#e3e6ea"}
+};
+const ORDER=["Mg","X","Zn","Fe","Pb","Cu","Ag"];
+const LADDER=[["K","Potassium"],["Ca","Calcium"],["Na","Sodium"],["Mg","Magnesium"],["Al","Aluminium"],["Zn","Zinc"],["Fe","Iron"],["Pb","Lead"],["H","(Hydrogen)"],["Cu","Copper"],["Ag","Silver"],["Au","Gold"]];
+
+const KEY="cell-voltage-lab-v1";
+let S={A:"Mg",B:"Cu",red:"B",flow:false,ladder:false,log:[],tab:0,ans:{},pred:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S=Object.assign(S,s);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const fmt=v=>(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(2);
+const redM=()=>S[S.red], blackM=()=>S[S.red==="A"?"B":"A"];
+function reading(){return Math.round((METALS[blackM()].p-METALS[redM()].p)*100)/100;}
+
+/* ---------- apparatus ---------- */
+let shown=null, anim=null;
+const SX={A:132,B:388}, SOCK={red:300,black:220};
+function wire(from,to){return `M ${from} 150 C ${from} 192, ${to} 168, ${to} 206`;}
+function drawRig(){
+  const r=reading(), rs=S.red, bs=rs==="A"?"B":"A";
+  const pos = r===0?null:(r>0?rs:bs); // which slot is positive electrode
+  const strip=slot=>{
+    const m=METALS[S[slot]], x=SX[slot]-14;
+    let pol="";
+    if(S.flow && pos){
+      const plus=slot===pos;
+      pol=`<circle cx="${SX[slot]}" cy="305" r="11" fill="${plus?'var(--red)':'var(--probe-black)'}"/>
+      <text x="${SX[slot]}" y="310" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">${plus?"+":"−"}</text>
+      <text x="${SX[slot]}" y="${slot==="A"?392:392}" text-anchor="middle" font-size="12" fill="var(--ink)">${plus?"positive electrode (cathode)":"negative electrode (anode)"}</text>`;
+    }
+    return `<rect x="${x}" y="212" width="28" height="150" rx="2" fill="${m.c}" stroke="rgba(0,0,0,.35)"/>
+      <rect x="${x+4}" y="198" width="20" height="16" rx="3" fill="#8a9097" stroke="rgba(0,0,0,.4)"/>
+      <text x="${SX[slot]}" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="${["Fe","Pb","X"].includes(S[slot])?"#fff":"#1a1a1a"}">${S[slot]}</text>${pol}`;
+  };
+  const eOn=S.flow && r!==0;
+  // electrons leave negative electrode: travel strip -> socket on its wire, socket -> strip on the positive wire
+  const negSlot = pos? (pos==="A"?"B":"A"):null;
+  const eWire=(slot,col)=>{ if(!eOn) return ""; const fromSock= slot===rs?SOCK.red:SOCK.black;
+    const cls = slot===negSlot?"e-rev":"e-fwd";
+    return `<path d="${wire(fromSock,SX[slot])}" fill="none" stroke="var(--electron)" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.1 18" class="${cls}"/>`;};
+  $("rig").innerHTML=`
+    <rect x="88" y="252" width="344" height="128" rx="4" fill="none" stroke="var(--glass)" stroke-width="3"/>
+    <rect x="91" y="282" width="338" height="96" fill="var(--liquid)"/>
+    <text x="420" y="300" text-anchor="end" font-size="12" fill="var(--muted)">NaCl(aq)</text>
+    ${strip("A")}${strip("B")}
+    <rect x="170" y="8" width="180" height="152" rx="14" fill="var(--meter)" stroke="var(--meter-edge)" stroke-width="2"/>
+    <rect x="184" y="22" width="152" height="62" rx="6" fill="var(--lcd)" stroke="var(--meter-edge)"/>
+    <text id="lcd" x="322" y="68" text-anchor="end" font-family="Share Tech Mono, monospace" font-size="38" fill="var(--lcd-ink)"></text>
+    <text x="328" y="78" text-anchor="end" font-size="10" fill="var(--lcd-ink)">V</text>
+    <text x="192" y="36" font-size="9" fill="var(--lcd-ink)">DC</text>
+    <circle cx="260" cy="108" r="15" fill="#2b2f35"/><rect x="258" y="94" width="4" height="10" fill="#e9e9e9"/>
+    <text x="196" y="112" font-size="10" fill="#2b2f35">20 V ⎓</text>
+    <text x="${SOCK.black}" y="134" text-anchor="middle" font-size="9" font-weight="600" fill="#2b2f35">COM (−)</text>
+    <text x="${SOCK.red}" y="134" text-anchor="middle" font-size="9" font-weight="600" fill="#2b2f35">VΩ (+)</text>
+    <circle cx="${SOCK.black}" cy="146" r="7" fill="#1d2228" stroke="#000"/>
+    <circle cx="${SOCK.red}" cy="146" r="7" fill="#cf3a2b" stroke="#7a1d14"/>
+    <path d="${wire(SOCK.black,SX[bs])}" fill="none" stroke="var(--probe-black)" stroke-width="5" stroke-linecap="round"/>
+    <path d="${wire(SOCK.red,SX[rs])}" fill="none" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+    ${eWire("A")}${eWire("B")}
+    ${eOn?`<text x="260" y="182" text-anchor="middle" font-size="11" fill="var(--ink)">● electron flow</text>`:""}
+  `;
+  animateLCD(r);
+  $("status").innerHTML=`<span class="dot" style="background:var(--red)"></span>Red (+) probe on <b>${METALS[redM()].name}</b> &nbsp;·&nbsp; <span class="dot" style="background:var(--probe-black)"></span>Black (−) probe on <b>${METALS[blackM()].name}</b>`;
+}
+function animateLCD(target){
+  const el=$("lcd"); if(anim) clearInterval(anim);
+  const start = shown===null?target:shown; let t=0;
+  if(start===target){el.textContent=fmt(target);shown=target;return;}
+  anim=setInterval(()=>{t++; const k=Math.min(1,t/9);
+    const v=start+(target-start)*k + (k<1?(Math.random()-.5)*0.06:0);
+    el.textContent=fmt(Math.round(v*100)/100);
+    if(k>=1){clearInterval(anim);anim=null;shown=target;el.textContent=fmt(target);}
+  },55);
+}
+
+/* ---------- controls ---------- */
+function chips(slot){
+  $("chips"+slot).innerHTML=ORDER.map(k=>`<button class="chip" data-s="${slot}" data-m="${k}" aria-pressed="${S[slot]===k}" title="${METALS[k].name} ${METALS[k].zh}"><span class="sw" style="background:${METALS[k].c}"></span>${k}</button>`).join("");
+}
+function leads(){
+  const side=S.red==="A"?"left":"right", other=S.red==="A"?"right":"left";
+  $("leads").innerHTML=`<span><span class="dot" style="background:var(--red)"></span>Red probe (+) → <b>${side} strip</b></span>
+  <span><span class="dot" style="background:var(--probe-black)"></span>Black probe (−) → <b>${other} strip</b></span>
+  <button class="btn ghost small" id="swap">⇄ Swap probes</button>`;
+  $("swap").onclick=()=>{S.red=S.red==="A"?"B":"A";render();};
+}
+document.addEventListener("click",e=>{
+  const c=e.target.closest(".chip"); if(c){S[c.dataset.s]=c.dataset.m;render();}
+});
+$("flowBtn").onclick=()=>{S.flow=!S.flow;render();};
+$("ladderBtn").onclick=()=>{S.ladder=!S.ladder;render();};
+$("record").onclick=()=>{S.log.push({r:redM(),b:blackM(),v:reading()});render();
+  const box=document.querySelector(".tablebox"); box.scrollTop=box.scrollHeight;};
+$("clearBtn").onclick=()=>{ if($("clearBtn").dataset.arm){S.log=[];delete $("clearBtn").dataset.arm;$("clearBtn").textContent="Clear";render();}
+  else{$("clearBtn").dataset.arm=1;$("clearBtn").textContent="Tap again to clear";setTimeout(()=>{delete $("clearBtn").dataset.arm;$("clearBtn").textContent="Clear";},2500);} };
+$("sortBtn").onclick=()=>{S.log.sort((a,b)=>b.v-a.v);render();};
+$("copyBtn").onclick=()=>{
+  const txt="Red (+) probe\tBlack (−) probe\tReading / V\n"+S.log.map(x=>`${METALS[x.r].name}\t${METALS[x.b].name}\t${fmt(x.v)}`).join("\n");
+  const done=m=>$("copyMsg").textContent=m;
+  try{navigator.clipboard.writeText(txt).then(()=>done("Copied. Paste into your worksheet or Excel."),()=>done("Copy was blocked. Select the table and copy it by hand."));}catch(e){done("Copy was blocked. Select the table and copy it by hand.");}
+};
+function drawLog(){
+  $("log").innerHTML=S.log.length?S.log.map((x,i)=>`<tr><td>${i+1}</td><td>${METALS[x.r].name}</td><td>${METALS[x.b].name}</td><td class="v">${fmt(x.v)}</td><td><button class="x" data-del="${i}" aria-label="Delete row ${i+1}">×</button></td></tr>`).join("")
+   :`<tr><td colspan="5" class="empty">No readings yet. Pick two metals and press “Record reading”.</td></tr>`;
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.log.splice(+b.dataset.del,1);render();});
+}
+function drawLadder(){
+  $("ladderPanel").hidden=!S.ladder;
+  $("ladderBtn").setAttribute("aria-pressed",S.ladder); $("flowBtn").setAttribute("aria-pressed",S.flow);
+  if(!S.ladder) return;
+  const r=redM(), b=blackM();
+  $("ladder").innerHTML=LADDER.map(([s,n])=>{
+    const inSim=!!METALS[s]; let cls=inSim?"":"off", pill="";
+    if(s===r){cls+=" hl-red";pill=`<span class="pill" style="background:var(--red)">red probe</span>`;}
+    if(s===b){cls+=" hl-black";pill+=`<span class="pill" style="background:var(--probe-black)">black probe</span>`;}
+    return `<li class="${cls}"><span class="sym">${s}</span><span>${n}</span>${pill}</li>`;}).join("");
+  const iR=LADDER.findIndex(x=>x[0]===r), iB=LADDER.findIndex(x=>x[0]===b);
+  $("gapnote").innerHTML = (r==="X"||b==="X") ? "Metal X is not on the list yet. Use Mission 4 to find where it belongs."
+    : r===b ? "Same metal on both probes: no difference in tendency to lose electrons."
+    : `The two metals are <b>${Math.abs(iR-iB)}</b> place${Math.abs(iR-iB)>1?"s":""} apart. The probe on the <b>lower</b> metal is the <b>${iR>iB?"red":"black"}</b> probe. Reading: <b>${fmt(reading())} V</b>.`;
+}
+
+/* ---------- missions ---------- */
+const M=[
+ {t:"1 · Copper as reference",
+  body:`<p><b>Goal:</b> find out what decides the <i>size</i> of the voltage.</p>
+  <ol class="steps"><li>Put <b>Cu</b> on the red probe, which is the positive (+) terminal of the meter. <button class="btn ghost small" data-set="Cu,Mg">Set up Cu / Mg</button></li>
+  <li>Keep Cu on the red probe. Change the <b>other</b> strip to Mg, Zn, Fe, Pb, Cu and Ag in turn. Record every reading.</li>
+  <li>Press <b>Sort by voltage</b>. Now press <b>Show E.C.S.</b> and compare your order with the series.</li></ol>`,
+  tps:["Which metal gives the largest voltage with copper? Which gives the smallest?","Compare your sorted table with your partner’s. Put both next to the E.C.S.","Complete: “The further apart the two metals are in the E.C.S., the ______ the voltage.”"],
+  checks:[{q:"What pattern do you see?",o:[
+   ["The voltage depends on how big the metal strip is.",0,"Every strip in this simulator is the same size, yet the readings change. Size is not the factor."],
+   ["The further apart the two metals are in the E.C.S., the larger the voltage.",1,"Yes. Mg is far above Cu (1.84 V), Fe is close to Cu (0.49 V), and Cu with Cu gives 0.00 V. The voltage measures the difference in tendency to lose electrons."],
+   ["Metals lower in the E.C.S. always give a larger voltage with copper.",0,"Check Fe (0.49 V) and Mg (1.84 V). Mg is higher in the series and gives the larger voltage."],
+   ["All metals give the same voltage with copper.",0,"Look at your table again: the readings range from −0.17 V to +1.84 V."]]}]},
+ {t:"2 · The minus sign",
+  body:`<div class="hook">若將 Cu 和 Mg 分別接駁至數位電錶的正極（紅色）與負極（黑色），電錶顯示 +1.84 V；但若將探針顛倒，讀數變成 −1.84 V。點解會有負號？正極紅色探針究竟要接落邊一極先會有正數？</div>
+  <ol class="steps"><li><button class="btn ghost small" data-set="Cu,Mg">Set up: red (+) on Cu, black (−) on Mg</button> Record the reading.</li>
+  <li>Press <b>⇄ Swap probes</b>. Record again. What changed? What stayed the same?</li>
+  <li>Try three more pairs (e.g. Zn/Fe, Cu/Ag, Mg/Zn). For each pair, find the way round that gives a <b>positive</b> reading.</li>
+  <li>For every positive reading, ask: is the red probe on the metal that is <b>higher</b> or <b>lower</b> in the E.C.S.?</li>
+  <li>Press <b>Show electron flow</b> to check your idea.</li></ol>`,
+  tps:["Does swapping the probes change the cell itself, or only how we measure it?","Share your three pairs. Do both of you get the same rule for a positive reading?","State your rule: “To get a positive reading, the red probe must be connected to …”"],
+  checks:[
+   {q:"To get a positive reading, the red (+) probe must be connected to …",o:[
+    ["the metal higher in the E.C.S. (more reactive).",0,"Try it: red on Mg, black on Cu gives −1.84 V. The red probe is on the wrong electrode."],
+    ["the metal lower in the E.C.S. (less reactive).",1,"Correct. The less reactive metal is the positive electrode, so the red (+) probe goes there."],
+    ["either metal. The sign is random.",0,"The sign is the same every time for the same connection, so it carries information."]]},
+   {q:"The metal lower in the E.C.S. is the …",o:[
+    ["positive electrode (cathode): ions gain electrons there.",1,"Correct. Electrons leave Mg (Mg → Mg²⁺ + 2e⁻), flow through the meter, and are gained at the copper electrode. Reduction happens there, so it is the cathode and the positive electrode."],
+    ["negative electrode (anode): the metal loses electrons there.",0,"The metal that loses electrons is the one higher in the E.C.S. (Mg). That is the negative electrode."]]},
+   {q:"So what does the minus sign in −1.84 V tell you?",o:[
+    ["The cell is now producing less electricity.",0,"The size is still 1.84 V. Swapping the probes cannot change the chemistry in the beaker."],
+    ["The red probe is on the negative electrode; the probes are the opposite way round.",1,"Yes. The size tells you the voltage; the sign tells you which electrode the red probe is on."],
+    ["Electrons have started to flow the other way.",0,"Turn on electron flow and swap the probes. The electrons still leave the same metal."]]}]},
+ {t:"3 · Predict, then measure",
+  body:`<p><b>Goal:</b> use your Mission 1 data to predict readings you have not measured yet.</p>
+  <ol class="steps"><li>Use your Cu-reference readings. Write a prediction <b>before</b> you set up the cell.</li>
+  <li>Then build the cell and check.</li></ol>`,
+  predicts:[{id:"p1",q:"Red probe on Ag, black probe on Zn. Reading?",set:"Ag,Zn"},{id:"p2",q:"Red probe on Fe, black probe on Mg. Reading?",set:"Fe,Mg"},{id:"p3",q:"Red probe on Zn, black probe on Cu. Reading?",set:"Zn,Cu"}],
+  tps:["How could you get the Zn/Ag voltage from the Zn/Cu and Cu/Ag readings?","Explain your method to your partner. Did you both add or subtract?","Which pair of metals in this lab would give the largest possible voltage? Why?"],
+  checks:[]},
+ {t:"4 · Mystery metal X",
+  body:`<p><b>Goal:</b> place Metal X in the Electrochemical Series using only the voltmeter.</p>
+  <ol class="steps"><li>Put Cu on the red probe and X on the black probe. <button class="btn ghost small" data-set="Cu,X">Set up Cu / X</button></li>
+  <li>Compare the reading with your Mission 1 results. Test X against Mg and Zn as well.</li></ol>`,
+  tps:["Is X above or below copper? How do you know from the sign?","Is X above or below zinc? Above or below magnesium? Which readings prove it?","Name a real metal that could be X."],
+  checks:[{q:"Where does Metal X belong in the E.C.S.?",o:[
+   ["Above Mg",0,"With Cu on the red probe, X gives +1.30 V but Mg gives +1.84 V. X is closer to Cu than Mg is."],
+   ["Between Mg and Zn",1,"Correct. +1.30 V lies between Zn (+0.92 V) and Mg (+1.84 V). Aluminium sits in this place in the E.C.S."],
+   ["Between Zn and Cu",0,"X gives a larger voltage with Cu than Zn does, so X is further from Cu than Zn."],
+   ["Below Cu",0,"A metal below Cu would give a negative reading with Cu on the red probe, like Ag."]]}]}
+];
+function drawTabs(){
+  $("tabs").innerHTML=M.map((m,i)=>{const done=missionDone(i);
+    return `<button class="tab" role="tab" aria-selected="${S.tab===i}" data-tab="${i}">${m.t}${done?'<span class="ok">✓</span>':''}</button>`;}).join("");
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=+b.dataset.tab;render();});
+}
+function missionDone(i){const m=M[i];
+  if(m.predicts) return m.predicts.every(p=>S.pred[p.id]&&S.pred[p.id].ok);
+  return m.checks.every((c,j)=>{const a=S.ans[i+"-"+j];return a!==undefined&&c.o[a][1];});}
+function drawMission(){
+  const i=S.tab, m=M[i];
+  let h=m.body;
+  if(m.predicts){h+=m.predicts.map(p=>{const st=S.pred[p.id]||{};
+    return `<div class="check"><div class="q">${p.q}</div><div class="predict">
+      <input id="${p.id}" inputmode="decimal" placeholder="e.g. +0.50" value="${st.v??""}" aria-label="Prediction in volts"> <span>V</span>
+      <button class="btn small" data-pred="${p.id}" data-pset="${p.set}">Build the cell and check</button></div>
+      ${st.msg?`<div class="fb ${st.ok?"right":"wrong"}">${st.msg}</div>`:""}</div>`;}).join("");}
+  h+=`<div class="tps"><div><b>THINK</b>${m.tps[0]}</div><div><b>PAIR</b>${m.tps[1]}</div><div><b>SHARE</b>${m.tps[2]}</div></div>`;
+  h+=m.checks.map((c,j)=>{const a=S.ans[i+"-"+j];
+    return `<div class="check"><div class="q">Check your idea: ${c.q}</div><div class="opts">${c.o.map((o,k)=>`<button class="opt ${a===k?(o[1]?"right":"wrong"):""}" data-q="${i}-${j}" data-k="${k}">${String.fromCharCode(65+k)}. ${o[0]}</button>`).join("")}</div>
+    ${a!==undefined?`<div class="fb ${c.o[a][1]?"right":"wrong"}">${c.o[a][1]?"✓ ":"Not quite. "}${c.o[a][2]}</div>`:""}</div>`;}).join("");
+  $("mission").innerHTML=h;
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.ans[b.dataset.q]=+b.dataset.k;render();});
+  document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>setPair(b.dataset.set));
+  document.querySelectorAll("[data-pred]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.pred, raw=$(id).value.replace("−","-").replace(/[^\d.+-]/g,""), v=parseFloat(raw);
+    if(isNaN(v)){S.pred[id]={v:$(id).value,ok:false,msg:"Type a number in volts first, with a sign (e.g. +0.50 or −0.30)."};render();return;}
+    setPair(b.dataset.pset,true); const real=reading(), ok=Math.abs(v-real)<=0.03;
+    S.pred[id]={v:$(id).value,ok,msg: ok?`✓ The meter reads ${fmt(real)} V. Your prediction works.`
+      : Math.abs(Math.abs(v)-Math.abs(real))<=0.03 ? `The size is right but the sign is wrong. The meter reads ${fmt(real)} V. Which electrode is the red probe on?`
+      : `The meter reads ${fmt(real)} V. Look at both metals’ readings against Cu in your table and try combining them.`};
+    render();});
+}
+function setPair(str,quiet){const [r,b]=str.split(",");S.red="B";S.B=r;S.A=b;if(!quiet)render();}
+
+function render(){chips("A");chips("B");leads();drawRig();drawLog();drawLadder();drawTabs();drawMission();save();}
+render();
+</script>
+
+</body>
+</html>
